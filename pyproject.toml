@@ -1,0 +1,17 @@
+[project]
+name = "agt_robot_agent"
+version = "0.1.0"
+description = "MCP based AI agent for ROS2 robot engineering"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp",
+    "fastapi",
+    "uvicorn"
+]
+
+[project.scripts]
+agt-robot-agent = "agt_robot_agent.server:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
