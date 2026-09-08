@@ -2,21 +2,21 @@
 
 ## Purpose
 
-Audit ROS2 workspace repositories before migration or deployment.
+Audit a ROS2 workspace and generate a reproducible software inventory before migration, fork management, or deployment.
+
+This skill is read-only by default.
 
 ## Input
 
-A workspace path, for example:
+Example:
 
-```
-~/ros2_ws
+```bash
+repo_audit ~/ros2_ws
 ```
 
 ## Output
 
-Generate:
-
-```
+```text
 audit_report/
 ├── repositories.json
 ├── repositories.md
@@ -27,14 +27,40 @@ audit_report/
 
 ## Checks
 
-- repository list
+- repository discovery
 - remote URL
 - branch
 - commit hash
-- uncommitted changes
+- dirty files
 - untracked files
-- third party modification detection
+- third-party modification detection
+- fork migration candidates
+
+## Workflow
+
+```text
+Workspace
+    |
+    v
+Scanner
+    |
+    v
+Inventory JSON
+    |
+    v
+Report Generator
+    |
+    v
+Architecture Review
+```
 
 ## Safety
 
-The audit phase is read-only by default.
+The audit phase must not:
+
+- modify source code
+- modify git history
+- change remotes
+- create commits
+
+Migration actions require an explicit execution workflow.
