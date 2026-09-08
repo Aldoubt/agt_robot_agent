@@ -22,7 +22,8 @@ audit_report/
 ├── repositories.md
 ├── dirty_changes.md
 ├── third_party_patch.md
-└── migration_candidates.md
+├── migration_candidates.md
+└── environment.md
 ```
 
 ## Checks
@@ -35,6 +36,7 @@ audit_report/
 - untracked files
 - third-party modification detection
 - fork migration candidates
+- ROS2 environment information
 
 ## Workflow
 
@@ -43,6 +45,11 @@ Workspace
     |
     v
 Scanner
+    |
+    +-- Repository Scanner
+    +-- Workspace Scanner
+    +-- Third Party Detector
+    +-- Environment Checker
     |
     v
 Inventory JSON
