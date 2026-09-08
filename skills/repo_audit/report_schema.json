@@ -1,0 +1,15 @@
+{
+  "repository": {
+    "name": "",
+    "path": "",
+    "remote": "",
+    "branch": "",
+    "commit": "",
+    "dirty": false,
+    "untracked": []
+  },
+  "recommendation": {
+    "type": "keep|fork|external|experiment",
+    "reason": ""
+  }
+}
