@@ -1,0 +1,20 @@
+# Model routing configuration
+
+models:
+  audit:
+    purpose: repository_inspection
+    preferred: low_cost
+
+  coding:
+    purpose: code_changes_and_build_fix
+    preferred: medium
+
+  architecture:
+    purpose: design_review_and_migration
+    preferred: high_reasoning
+
+workflow:
+  repository_audit:
+    - audit
+    - architecture
+    - coding
