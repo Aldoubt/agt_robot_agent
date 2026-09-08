@@ -28,7 +28,11 @@ def main():
     print("Read-only audit mode")
 
     inventory = scan_workspace(str(args.workspace))
+
     generate_markdown_report(inventory, str(args.output))
+
+    # Reserved for migration/vcs/environment reports.
+    # The first phase keeps report generation independent and safe.
 
     print("Audit completed")
     print(f"Report generated: {args.output}")
