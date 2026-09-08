@@ -1,0 +1,37 @@
+# Repository audit configuration
+# Used by repo_audit skill
+
+workspace:
+  default: ~/ros2_ws
+
+scan:
+  recursive: true
+  detect_ros_packages: true
+  detect_git_repositories: true
+
+ignore:
+  directories:
+    - build
+    - install
+    - log
+    - .cache
+    - __pycache__
+
+reports:
+  output_directory: audit_report
+  formats:
+    - json
+    - markdown
+
+rules:
+  third_party_detection:
+    enabled: true
+    modified_external_repo_is_fork_candidate: true
+
+  untracked_files:
+    enabled: true
+
+safety:
+  readonly: true
+  allow_git_write: false
+  allow_file_modify: false
