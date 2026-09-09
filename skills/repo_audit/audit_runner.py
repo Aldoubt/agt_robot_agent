@@ -21,22 +21,46 @@ class AuditRunner:
 
         context = AuditContext(workspace=str(self.workspace))
 
-        # Stage execution will gradually connect scanners.
-        # Keeping a shared context avoids tight coupling between modules.
-        stages = [
-            "workspace_scan",
-            "repository_scan",
-            "environment_check",
-            "dependency_analysis",
-            "migration_analysis",
-            "vcs_candidate_generation",
-        ]
+        self._run_workspace_stage(context)
+        self._run_environment_stage(context)
 
+        self._write_manifest(context)
+        self._write_summary(context)
+
+        return context
+
+    def _run_workspace_stage(self, context):
+        """Connect workspace scanners when available."""
+        try:
+            from .workspace_scanner import scan_workspace
+            result = scan_workspace(context.workspace)
+
+            if isinstance(result, dict):
+                context.repositories.extend(result.get("repositories", []))
+                context.ros_packages.extend(result.get("ros_packages", []))
+        except Exception as exc:
+            context.risks.append({
+                "stage": "workspace_scan",
+                "error": str(exc),
+            })
+
+    def _run_environment_stage(self, context):
+        try:
+            from .environment_checker import collect_environment
+            result = collect_environment()
+            if isinstance(result, dict):
+                context.environment.update(result)
+        except Exception as exc:
+            context.risks.append({
+                "stage": "environment_check",
+                "error": str(exc),
+            })
+
+    def _write_manifest(self, context):
         manifest = {
             "workspace": context.workspace,
             "generated_at": datetime.utcnow().isoformat(),
             "readonly": context.readonly,
-            "stages": stages,
             "context": context.to_dict(),
         }
 
@@ -45,18 +69,14 @@ class AuditRunner:
             encoding="utf-8",
         )
 
-        self._write_summary(manifest)
-        return context
-
-    def _write_summary(self, result):
+    def _write_summary(self, context):
         report = self.output / "audit_summary.md"
         report.write_text(
             "# Robot Workspace Audit Summary\n\n"
-            f"Workspace: {result['workspace']}\n\n"
-            f"Generated: {result['generated_at']}\n\n"
+            f"Workspace: {context.workspace}\n\n"
             "Mode: read-only\n\n"
-            "Stages:\n"
-            + "\n".join(f"- {s}" for s in result["stages"]),
+            f"Repositories found: {len(context.repositories)}\n\n"
+            f"ROS packages found: {len(context.ros_packages)}\n",
             encoding="utf-8",
         )
 
