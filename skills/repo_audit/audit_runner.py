@@ -24,6 +24,7 @@ class AuditRunner:
         self._run_workspace_stage(context)
         self._run_environment_stage(context)
         self._run_repository_risk_stage(context)
+        self._run_dependency_stage(context)
 
         self._write_manifest(context)
         self._write_summary(context)
@@ -34,9 +35,8 @@ class AuditRunner:
         try:
             from .workspace_scanner import scan_workspace
             result = scan_workspace(context.workspace)
-            if isinstance(result, dict):
-                context.repositories.extend(result.get("repositories", []))
-                context.ros_packages.extend(result.get("ros_packages", []))
+            context.repositories.extend(result.get("repositories", []))
+            context.ros_packages.extend(result.get("ros_packages", []))
         except Exception as exc:
             context.risks.append({"stage": "workspace_scan", "error": str(exc)})
 
@@ -63,6 +63,15 @@ class AuditRunner:
         except Exception as exc:
             context.risks.append({"stage": "repository_risk", "error": str(exc)})
 
+    def _run_dependency_stage(self, context):
+        try:
+            from .ros_dependency_analyzer import analyze_ros_packages
+            context.dependencies = {
+                "packages": analyze_ros_packages(context.workspace)
+            }
+        except Exception as exc:
+            context.risks.append({"stage": "dependency_analysis", "error": str(exc)})
+
     def _write_manifest(self, context):
         manifest = {
             "workspace": context.workspace,
@@ -82,7 +91,8 @@ class AuditRunner:
             "Mode: read-only\n\n"
             f"Repositories found: {len(context.repositories)}\n\n"
             f"ROS packages found: {len(context.ros_packages)}\n\n"
-            f"Risks detected: {len(context.risks)}\n",
+            f"Risks detected: {len(context.risks)}\n\n"
+            f"Dependencies analyzed: {len(context.dependencies.get('packages', []))}\n",
             encoding="utf-8",
         )
 
