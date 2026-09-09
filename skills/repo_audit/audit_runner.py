@@ -18,7 +18,6 @@ class AuditRunner:
 
     def run(self):
         self.output.mkdir(parents=True, exist_ok=True)
-
         context = AuditContext(workspace=str(self.workspace))
 
         self._run_workspace_stage(context)
@@ -28,15 +27,15 @@ class AuditRunner:
 
         self._write_manifest(context)
         self._write_summary(context)
-
         return context
 
     def _run_workspace_stage(self, context):
         try:
             from .workspace_scanner import scan_workspace
             result = scan_workspace(context.workspace)
-            context.repositories.extend(result.get("repositories", []))
-            context.ros_packages.extend(result.get("ros_packages", []))
+            if isinstance(result, dict):
+                context.repositories.extend(result.get("repositories", []))
+                context.ros_packages.extend(result.get("ros_packages", []))
         except Exception as exc:
             context.risks.append({"stage": "workspace_scan", "error": str(exc)})
 
@@ -51,10 +50,7 @@ class AuditRunner:
         try:
             from .third_party_detector import classify_repository
             for repo in context.repositories:
-                result = classify_repository(
-                    repo.get("remote", ""),
-                    repo.get("status", "")
-                )
+                result = classify_repository(repo.get("remote", ""), repo.get("status", ""))
                 context.risks.append({
                     "path": repo.get("path", ""),
                     "category": result.category,
@@ -80,8 +76,7 @@ class AuditRunner:
             "context": context.to_dict(),
         }
         (self.output / "audit_manifest.json").write_text(
-            json.dumps(manifest, indent=2),
-            encoding="utf-8",
+            json.dumps(manifest, indent=2), encoding="utf-8"
         )
 
     def _write_summary(self, context):
@@ -91,8 +86,8 @@ class AuditRunner:
             "Mode: read-only\n\n"
             f"Repositories found: {len(context.repositories)}\n\n"
             f"ROS packages found: {len(context.ros_packages)}\n\n"
-            f"Risks detected: {len(context.risks)}\n\n"
-            f"Dependencies analyzed: {len(context.dependencies.get('packages', []))}\n",
+            f"Dependencies analyzed: {len(context.dependencies.get('packages', []))}\n\n"
+            f"Risks detected: {len(context.risks)}\n",
             encoding="utf-8",
         )
 
