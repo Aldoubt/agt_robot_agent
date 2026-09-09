@@ -1,5 +1,4 @@
-"""
-Unified ROS2 robot workspace audit pipeline.
+"""Unified ROS2 robot workspace audit pipeline.
 
 The runner coordinates read-only audit stages.
 No repository mutation, commit, push or configuration changes are allowed.
@@ -8,6 +7,8 @@ No repository mutation, commit, push or configuration changes are allowed.
 from pathlib import Path
 from datetime import datetime
 import json
+
+from .audit_context import AuditContext
 
 
 class AuditRunner:
@@ -18,15 +19,10 @@ class AuditRunner:
     def run(self):
         self.output.mkdir(parents=True, exist_ok=True)
 
-        result = {
-            "workspace": str(self.workspace),
-            "generated_at": datetime.utcnow().isoformat(),
-            "readonly": True,
-            "stages": [],
-        }
+        context = AuditContext(workspace=str(self.workspace))
 
-        # Pipeline stages are intentionally isolated.
-        # Individual scanners can be enabled without changing the runner API.
+        # Stage execution will gradually connect scanners.
+        # Keeping a shared context avoids tight coupling between modules.
         stages = [
             "workspace_scan",
             "repository_scan",
@@ -36,15 +32,21 @@ class AuditRunner:
             "vcs_candidate_generation",
         ]
 
-        result["stages"] = stages
+        manifest = {
+            "workspace": context.workspace,
+            "generated_at": datetime.utcnow().isoformat(),
+            "readonly": context.readonly,
+            "stages": stages,
+            "context": context.to_dict(),
+        }
 
         (self.output / "audit_manifest.json").write_text(
-            json.dumps(result, indent=2),
+            json.dumps(manifest, indent=2),
             encoding="utf-8",
         )
 
-        self._write_summary(result)
-        return result
+        self._write_summary(manifest)
+        return context
 
     def _write_summary(self, result):
         report = self.output / "audit_summary.md"
