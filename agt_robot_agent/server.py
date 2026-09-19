@@ -29,6 +29,15 @@ from .ros2_tools import (
     tf_echo,
     colcon_build,
 )
+from .bag_tools import (
+    BAG_TOOL_DEFINITIONS,
+    bag_list,
+    bag_info,
+    bag_topics,
+    bag_verify,
+    bag_trim,
+    bag_convert_ros1_livox,
+)
 
 # ── Configuration ──────────────────────────────────────────────────────────
 
@@ -203,7 +212,10 @@ async def list_tools() -> list[Tool]:
     # Add ROS 2 tools
     ros2_tools = [Tool(**t) for t in ROS2_TOOL_DEFINITIONS]
 
-    return base_tools + ros2_tools
+    # Add bag tools
+    bag_tools = [Tool(**t) for t in BAG_TOOL_DEFINITIONS]
+
+    return base_tools + ros2_tools + bag_tools
 
 
 @server.call_tool()
@@ -356,6 +368,48 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         result = colcon_build(
             packages=arguments.get("packages"),
             workspace=arguments.get("workspace"),
+        )
+        return [TextContent(type="text", text=str(result))]
+
+    # ── Bag tools ──
+    elif name == "bag_list":
+        result = bag_list(arguments["parent_dir"])
+        return [TextContent(type="text", text=str(result))]
+
+    elif name == "bag_info":
+        result = bag_info(arguments["bag_path"])
+        return [TextContent(type="text", text=str(result))]
+
+    elif name == "bag_topics":
+        result = bag_topics(arguments["bag_path"])
+        return [TextContent(type="text", text=str(result))]
+
+    elif name == "bag_verify":
+        result = bag_verify(
+            arguments["bag_path"],
+            report_path=arguments.get("report_path"),
+        )
+        return [TextContent(type="text", text=str(result))]
+
+    elif name == "bag_trim":
+        result = bag_trim(
+            input_path=arguments["input_path"],
+            output_path=arguments["output_path"],
+            start_sec=arguments.get("start_sec"),
+            end_sec=arguments.get("end_sec"),
+            topics=arguments.get("topics"),
+            compression=arguments.get("compression"),
+            verify=True,
+            dry_run=arguments.get("dry_run", False),
+        )
+        return [TextContent(type="text", text=str(result))]
+
+    elif name == "bag_convert_ros1":
+        result = bag_convert_ros1_livox(
+            input_dir=arguments["input_dir"],
+            output_dir=arguments["output_dir"],
+            duration_sec=arguments.get("duration_sec"),
+            dry_run=arguments.get("dry_run", False),
         )
         return [TextContent(type="text", text=str(result))]
 
