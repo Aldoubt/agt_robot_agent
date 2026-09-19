@@ -16,6 +16,20 @@ from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent
 
+from .ros2_tools import (
+    ROS2_TOOL_DEFINITIONS,
+    list_nodes,
+    node_info,
+    list_topics,
+    topic_info,
+    topic_hz,
+    topic_echo_bounded,
+    list_params,
+    get_param,
+    tf_echo,
+    colcon_build,
+)
+
 # ── Configuration ──────────────────────────────────────────────────────────
 
 DEFAULT_WORKSPACE = os.environ.get("AGT_WORKSPACE", str(Path.home() / "ros2_ws"))
@@ -85,7 +99,7 @@ server = Server("agt-robot-agent")
 
 @server.list_tools()
 async def list_tools() -> list[Tool]:
-    return [
+    base_tools = [
         Tool(
             name="workspace_inspect",
             description="Inspect the ROS 2 workspace structure. Returns list of packages, repos, and basic stats.",
@@ -186,11 +200,17 @@ async def list_tools() -> list[Tool]:
         ),
     ]
 
+    # Add ROS 2 tools
+    ros2_tools = [Tool(**t) for t in ROS2_TOOL_DEFINITIONS]
+
+    return base_tools + ros2_tools
+
 
 @server.call_tool()
 async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
     workspace = _resolve_workspace(arguments.get("workspace"))
 
+    # ── Workspace tools ──
     if name == "workspace_inspect":
         ros_packages = []
         for pkg_xml in workspace.rglob("package.xml"):
@@ -291,6 +311,53 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
             docs.append(str(rel))
 
         return [TextContent(type="text", text=f"Found {len(docs)} docs:\n" + "\n".join(sorted(docs)))]
+
+    # ── ROS 2 tools ──
+    elif name == "ros_nodes_list":
+        result = list_nodes()
+        return [TextContent(type="text", text=str(result))]
+
+    elif name == "ros_node_info":
+        result = node_info(arguments["node_name"])
+        return [TextContent(type="text", text=str(result))]
+
+    elif name == "ros_topics_list":
+        result = list_topics()
+        return [TextContent(type="text", text=str(result))]
+
+    elif name == "ros_topic_info":
+        result = topic_info(arguments["topic_name"])
+        return [TextContent(type="text", text=str(result))]
+
+    elif name == "ros_topic_hz":
+        result = topic_hz(
+            arguments["topic_name"],
+            window=arguments.get("window", 10),
+        )
+        return [TextContent(type="text", text=str(result))]
+
+    elif name == "ros_topic_echo":
+        result = topic_echo_bounded(arguments["topic_name"])
+        return [TextContent(type="text", text=str(result))]
+
+    elif name == "ros_params_list":
+        result = list_params(arguments.get("node_name"))
+        return [TextContent(type="text", text=str(result))]
+
+    elif name == "ros_param_get":
+        result = get_param(arguments["node_name"], arguments["param_name"])
+        return [TextContent(type="text", text=str(result))]
+
+    elif name == "ros_tf_echo":
+        result = tf_echo(arguments["source_frame"], arguments["target_frame"])
+        return [TextContent(type="text", text=str(result))]
+
+    elif name == "colcon_build":
+        result = colcon_build(
+            packages=arguments.get("packages"),
+            workspace=arguments.get("workspace"),
+        )
+        return [TextContent(type="text", text=str(result))]
 
     else:
         return [TextContent(type="text", text=f"Unknown tool: {name}")]
